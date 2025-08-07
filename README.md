@@ -19,3 +19,18 @@ It performs:
 - Multi-exon skipping to restore reading frame
 - Generation of exportable summary tables
 
+## 📌 Features
+
+- ✅ Parses Ensembl GTF and FASTA files
+- ✅ Identifies canonical transcript, coding exons, and CDS structure
+- ✅ Simulates exon skipping and evaluates:
+  - Frame preservation/disruption
+  - NMD potential
+  - Protein domain loss
+- ✅ Designs both internal (ASO-E) and junction-spanning (ASO-J) ASOs
+- ✅ Supports mutation injection before simulation
+- ✅ Prioritizes frame-rescuing exon combinations
+- ✅ Detects loss of protein function using UniProt domain annotations
+- ✅ Outputs comprehensive and structured results for downstream analysis
+
+---
