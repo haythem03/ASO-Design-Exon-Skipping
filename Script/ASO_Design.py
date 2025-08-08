@@ -297,3 +297,46 @@ coding_exons = []
             strand=strand,
             genome=genome
         )
+muts = mutation_df[
+            (mutation_df["gene"] == tx_id) &
+            (mutation_df["Chromosome"].astype(str) == chrom) &
+            (mutation_df["Position"] >= exon_start) &
+            (mutation_df["Position"] <= exon_end)
+        ]
+        mut_count = len(muts)
+
+        try:
+            seq = genome[chrom][exon_start - 1:exon_end].seq.upper()
+            if strand == "-":
+                seq = str(Seq(seq).reverse_complement())
+        except:
+            continue
+
+        raw_e = sliding_window(seq, 25)
+        valid_e = [str(Seq(a).reverse_complement()).replace("T", "U") for a in raw_e if filter_aso(a)]
+
+        junction_seqs = []
+        try:
+            if strand == "+":
+                intron_5p = genome[chrom][exon_end:exon_end + 24].seq.upper()
+                intron_3p = genome[chrom][exon_start - 25:exon_start].seq.upper()
+                exon_seq_start = seq[:7]
+                exon_seq_end = seq[-7:]
+            else:
+                intron_5p = str(Seq(genome[chrom][exon_start - 25:exon_start].seq.upper()).reverse_complement())
+                intron_3p = str(Seq(genome[chrom][exon_end:exon_end + 24].seq.upper()).reverse_complement())
+                exon_seq_start = seq[-7:]
+                exon_seq_end = seq[:7]
+
+            for i in range(7):
+                a_seq = intron_3p + exon_seq_start
+                d_seq = exon_seq_end + intron_5p
+                if len(a_seq[i:i + 25]) == 25:
+                    junction_seqs.append(a_seq[i:i + 25])
+                if len(d_seq[i:i + 25]) == 25:
+                    junction_seqs.append(d_seq[i:i + 25])
+        except Exception as e:
+            print(f"❌ Junction ASO error at Exon {exon_start}-{exon_end}: {e}")
+            junction_seqs = []
+
+        valid_j = [str(Seq(j).reverse_complement()).replace("T", "U") for j in junction_seqs if filter_aso(j)]
