@@ -164,3 +164,84 @@ def custom_tm_formula(seq):
         return None
     tm = 64.9 + 41 * (numerator / denominator)
     return tm
+
+
+# ---- Main execution ----
+
+def main():
+    # Load files (make sure to have downloaded the files beforehand)
+    gtf_path = "Homo_sapiens.GRCh38.104.gtf"
+    genome_fasta_path = "Homo_sapiens.GRCh38.dna.primary_assembly.fa"
+    mutation_file = "df_final_all.csv"
+
+    gtf_cols = [
+        "seqname", "source", "feature", "start", "end", "score",
+        "strand", "frame", "attribute"
+    ]
+
+    gtf = pd.read_csv(
+        gtf_path,
+        sep="\t",
+        comment="#",
+        names=gtf_cols,
+    )
+
+    genome = Fasta(genome_fasta_path)
+    mutation_df = pd.read_csv(mutation_file)
+    mutation_df["Chromosome"] = mutation_df["Chromosome"].astype(str).str.replace("chr", "").str.strip()
+
+    canonical_tx = "ENST00000357033"
+
+    gtf_cds = gtf[
+        (gtf["feature"].isin(["CDS", "stop_codon"])) &
+        gtf["attribute"].astype(str).str.contains(f'transcript_id "{canonical_tx}"') &
+        gtf["attribute"].astype(str).str.contains('transcript_biotype "protein_coding"')
+    ].copy()
+    gtf_cds["transcript_id"] = gtf_cds["attribute"].apply(extract_transcript_id)
+
+    gtf_exons = gtf[
+        (gtf["feature"] == "exon") &
+        gtf["attribute"].astype(str).str.contains(f'transcript_id "{canonical_tx}"') &
+        gtf["attribute"].astype(str).str.contains('transcript_biotype "protein_coding"')
+    ].copy()
+    gtf_exons["transcript_id"] = gtf_exons["attribute"].apply(extract_transcript_id)
+    gtf_exons["exon_number"] = gtf_exons["attribute"].apply(extract_exon_number)
+
+    tx_exons = gtf_exons[gtf_exons["transcript_id"] == canonical_tx].sort_values("start")
+    tx_cds = gtf_cds[gtf_cds["transcript_id"] == canonical_tx].sort_values("start")
+
+    if len(tx_exons) <= 2 or len(tx_cds) == 0:
+        print(f"❌ Not enough exons or CDS entries for {canonical_tx}")
+        return
+
+    strand = tx_cds.iloc[0]["strand"]
+    chrom = tx_cds.iloc[0]["seqname"].replace("chr", "")
+
+    if strand == "+":
+        cds_blocks_sorted = tx_cds.sort_values("start")
+    else:
+        cds_blocks_sorted = tx_cds.sort_values("start", ascending=False)
+
+    cds_seq_parts = []
+    cds_coords = []
+
+    for _, row in cds_blocks_sorted.iterrows():
+        start, end = row["start"], row["end"]
+        seq = genome[chrom][start - 1:end].seq.upper()
+        cds_seq_parts.append(str(seq))
+        cds_coords.append((start, end))
+
+    full_cds_sequence = ''.join(cds_seq_parts)
+    if strand == '-':
+        full_cds_sequence = str(Seq(full_cds_sequence).reverse_complement())
+
+    print(f"✅ CDS sequence start (first 30 bases): {full_cds_sequence[:30]}")
+    print(f"✅ Translated protein (first 20 aa): {str(Seq(full_cds_sequence).translate(to_stop=False)[:20])}")
+
+    genomic_to_cds_index = {}
+    cds_index = 0
+    for start, end in cds_coords:
+        rng = range(start, end + 1) if strand == "+" else range(end, start - 1, -1)
+        for pos in rng:
+            genomic_to_cds_index[pos] = cds_index
+            cds_index += 1
