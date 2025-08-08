@@ -245,3 +245,55 @@ def main():
         for pos in rng:
             genomic_to_cds_index[pos] = cds_index
             cds_index += 1
+coding_exons = []
+    for _, exon in tx_exons.iterrows():
+        exon_start, exon_end = exon["start"], exon["end"]
+        overlap = tx_cds[
+            (tx_cds["start"] <= exon_end) & (tx_cds["end"] >= exon_start)
+        ]
+        if not overlap.empty:
+            coding_exons.append(exon)
+
+    results = []
+
+    for idx, exon_row in enumerate(coding_exons[1:-1], start=1):
+        exon_start = exon_row["start"]
+        exon_end = exon_row["end"]
+        original_exon_number = exon_row.get("exon_number", None)
+
+        exon_cds_positions = [
+            genomic_to_cds_index[pos] for pos in range(exon_start, exon_end + 1)
+            if pos in genomic_to_cds_index
+        ]
+        if not exon_cds_positions:
+            print(f"❌ Exon {exon_start}-{exon_end} has no CDS positions, skipping")
+            continue
+
+        exon_cds_start = min(exon_cds_positions)
+        exon_cds_end = max(exon_cds_positions)
+
+        sim_result = simulate_exon_skip_and_translate(
+            cds_sequence=full_cds_sequence,
+            exon_cds_start=exon_cds_start,
+            exon_cds_end=exon_cds_end
+        )
+
+        if sim_result is None:
+            print(f"❌ Simulation failed for exon {exon_start}-{exon_end}")
+            continue
+
+        tx_id = canonical_tx
+        frame = sim_result["disruption_type"]
+
+        print(f"Transcript {tx_id} | Exon {exon_start}-{exon_end} | Frame: {frame} | Original length: {sim_result['original_len']} | Skipped length: {sim_result['skipped_len']}")
+
+        nmd = predict_nmd(
+            frame_status=frame,
+            exon_start=exon_start,
+            exon_end=exon_end,
+            cds_sequence=sim_result["skipped_seq"],
+            genomic_to_cds_index=genomic_to_cds_index,
+            chrom=chrom,
+            strand=strand,
+            genome=genome
+        )
