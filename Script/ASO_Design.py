@@ -340,3 +340,29 @@ muts = mutation_df[
             junction_seqs = []
 
         valid_j = [str(Seq(j).reverse_complement()).replace("T", "U") for j in junction_seqs if filter_aso(j)]
+
+results.append({
+            "Transcript": tx_id,
+            "Chromosome": chrom,
+            "Exon Number": original_exon_number,
+            "Exon Seq": str(seq),
+            "Exon length": len(seq),
+            "Exon Start": exon_start,
+            "Exon End": exon_end,
+            "Mutation Count": mut_count,
+            "Frame": frame,
+            "NMD": nmd,
+            "ASO-E Count": len(valid_e),
+            "ASO-E seq": valid_e,
+            "ASO-J seq": valid_j,
+            "ASO-J Count": len(valid_j),
+            "Original Protein": sim_result["original_protein"],
+            "Skipped Protein": sim_result["skipped_protein"]
+        })
+
+    df = pd.DataFrame(results)
+    ranked_df = df.sort_values(by="Mutation Count", ascending=False).reset_index(drop=True)
+    ranked_df.to_csv("ASO_Count.csv", index=False)
+    print(ranked_df.head())
+
+if __name__
