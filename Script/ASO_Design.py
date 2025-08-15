@@ -418,3 +418,18 @@ def skip_exons_and_translate(cds_sequence, exon_blocks, skip_exon_numbers):
         "length_diff": len(cds_sequence) - len(new_cds)
     }
 
+# ==================================
+# --- Simulate skipping examples ---
+# ==================================
+result_50_52 = skip_exons_and_translate(full_cds_sequence, exon_blocks, [48, 49, 50])
+print("🧬 Skipping Exons 50–52")
+print("Frame effect:", result_50_52["frame_status"])
+print("Length diff:", result_50_52["length_diff"])
+print("Protein (first 60 aa):", result_50_52["skipped_protein"])
+print()
+
+result_50_53 = skip_exons_and_translate(full_cds_sequence, exon_blocks, [48, 49, 50, 51])
+print("🧬 Skipping Exons 50–53")
+print("Frame effect:", result_50_53["frame_status"])
+print("Length diff:", result_50_53["length_diff"])
+print("Protein (first 60 aa):", result_50_53["skipped_protein"])
