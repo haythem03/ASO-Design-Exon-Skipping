@@ -365,4 +365,21 @@ results.append({
     ranked_df.to_csv("ASO_Count.csv", index=False)
     print(ranked_df.head())
 
-if __name__
+# ======================
+# --- Build exon map ---
+# ======================
+exon_blocks = []
+for _, exon_row in enumerate(coding_exons):
+    exon_number = exon_row["exon_number"]
+    exon_start = exon_row["start"]
+    exon_end = exon_row["end"]
+
+    cds_positions = [
+        genomic_to_cds_index[pos]
+        for pos in range(exon_start, exon_end + 1)
+        if pos in genomic_to_cds_index
+    ]
+    if not cds_positions:
+        continue
+
+    exon_blocks.append((exon_number, min(cds_positions), max(cds_positions)))
