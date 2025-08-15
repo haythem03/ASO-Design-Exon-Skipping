@@ -383,3 +383,38 @@ for _, exon_row in enumerate(coding_exons):
         continue
 
     exon_blocks.append((exon_number, min(cds_positions), max(cds_positions)))
+
+# ========================================
+# --- Define the exon-skipping function ---
+# ========================================
+def skip_exons_and_translate(cds_sequence, exon_blocks, skip_exon_numbers):
+    """Skip selected exons and translate the modified CDS sequence."""
+    exon_blocks_sorted = sorted(exon_blocks, key=lambda x: x[1])  # sort by CDS start
+    new_cds = "".join(
+        cds_sequence[start:end+1]
+        for exon_number, start, end in exon_blocks_sorted
+        if exon_number not in skip_exon_numbers
+    )
+
+    full_protein = str(Seq(cds_sequence).translate(to_stop=False))
+    skipped_protein = str(Seq(new_cds).translate(to_stop=False))
+
+    if skipped_protein == full_protein:
+        frame_status = "in-frame (no change)"
+    elif "*" in skipped_protein and skipped_protein[-1] == "*" and skipped_protein.count("*") == 1:
+        frame_status = "in-frame (ends with stop)"
+    elif "*" in skipped_protein:
+        frame_status = "frameshift (premature stop)"
+    elif len(new_cds) % 3 == 0:
+        frame_status = "in-frame (altered protein)"
+    else:
+        frame_status = "frameshift (likely)"
+
+    return {
+        "skipped_cds": new_cds,
+        "original_protein": full_protein,
+        "skipped_protein": skipped_protein,
+        "frame_status": frame_status,
+        "length_diff": len(cds_sequence) - len(new_cds)
+    }
+
