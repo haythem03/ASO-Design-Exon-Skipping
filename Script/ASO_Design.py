@@ -507,3 +507,43 @@ else:
     print(sim_result["skipped_protein"])
     print("\n🧬 Full Protein Sequence:")
     print(sim_result["original_protein"])
+
+# ====================================
+# --- Frame rescue via exon skipping ---
+# ====================================
+    if "frameshift" not in sim_result["frame_status"]:
+        print("✅ No frameshift — skipping these exons is likely safe.")
+    else:
+        print("⚠️ Deletion causes a frameshift! Attempting frame rescue via exon skipping...")
+        found_fix = False
+        suggested_exon = None
+
+        for extra_exon in available_exons:
+            if extra_exon in deleted_exons:
+                continue
+            combined_skips = deleted_exons + [extra_exon]
+            rescue_result = skip_exons_and_translate(full_cds_sequence, exon_blocks, combined_skips)
+
+            if "frameshift" not in rescue_result["frame_status"]:
+                print(f"\n✅ Skipping exon {extra_exon} restores frame.")
+                suggested_exon = extra_exon
+                found_fix = True
+
+                disrupted_after_rescue = []
+                for domain in domain_list:
+                    name, start, end = domain["name"], domain["start"], domain["end"]
+                    orig_dom = rescue_result['original_protein'][start-1:end]
+                    new_dom = rescue_result['skipped_protein'][start-1:end] if end <= len(rescue_result['skipped_protein']) else ""
+                    if new_dom != orig_dom:
+                        disrupted_after_rescue.append((name, start, end))
+
+                if disrupted_after_rescue:
+                    print("⚠️ However, this rescue deletion alters the following domains:")
+                    for name, start, end in disrupted_after_rescue:
+                        print(f" - {name} ({start}-{end})")
+                else:
+                    print("✅ Domain integrity preserved after frame rescue.")
+                break
+
+        if not found_fix:
+            print("❌ No single exon rescue found. Consider multi-exon skipping or alternative strategy.")
