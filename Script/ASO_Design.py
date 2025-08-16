@@ -472,3 +472,38 @@ def detect_domain_loss(domains, original_protein, skipped_protein):
     return lost_domains
 
 
+# ===============================
+# --- User-defined deletions ---
+# ===============================
+deleted_input = input("Enter deleted exon numbers (comma-separated, e.g., 48,49,50): ")
+deleted_exons = [int(x.strip()) for x in deleted_input.split(",") if x.strip().isdigit()]
+
+domain_list = fetch_uniprot_domains("P11532")
+
+available_exons = [ex[0] for ex in exon_blocks]
+if not all(e in available_exons for e in deleted_exons):
+    print("❌ One or more entered exon numbers are invalid for the selected transcript.")
+else:
+    sim_result = skip_exons_and_translate(full_cds_sequence, exon_blocks, deleted_exons)
+    print(f"\n🧬 Patient Deletion: Exons {deleted_exons}")
+    print(f"📍 Frame Status: {sim_result['frame_status']}")
+
+    disrupted_domains = []
+    for domain in domain_list:
+        name, start, end = domain["name"], domain["start"], domain["end"]
+        original = sim_result["original_protein"][start-1:end]
+        skipped = sim_result["skipped_protein"][start-1:end] if end <= len(sim_result["skipped_protein"]) else ""
+        if skipped != original:
+            disrupted_domains.append((name, start, end))
+
+    if disrupted_domains:
+        print("⚠️ One or more protein domains are altered by this deletion:")
+        for name, start, end in disrupted_domains:
+            print(f" - {name} ({start}-{end})")
+    else:
+        print("✅ No known protein domains are affected.")
+
+    print("\n🧬 Protein Sequence After Deletion:")
+    print(sim_result["skipped_protein"])
+    print("\n🧬 Full Protein Sequence:")
+    print(sim_result["original_protein"])
