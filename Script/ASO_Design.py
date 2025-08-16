@@ -433,3 +433,42 @@ print("🧬 Skipping Exons 50–53")
 print("Frame effect:", result_50_53["frame_status"])
 print("Length diff:", result_50_53["length_diff"])
 print("Protein (first 60 aa):", result_50_53["skipped_protein"])
+
+# ==============================
+# --- UniProt domain fetching ---
+# ==============================
+def fetch_uniprot_domains(uniprot_id):
+    url = f"https://rest.uniprot.org/uniprotkb/{uniprot_id}.json"
+    response = requests.get(url)
+    response.raise_for_status()
+    data = response.json()
+
+    features = data.get("features", [])
+    domain_features = []
+    for feat in features:
+        if feat.get("type") in ["Domain", "Repeat"]:
+            domain_features.append({
+                "type": feat["type"],
+                "name": feat.get("description", "Unknown"),
+                "start": feat["location"]["start"]["value"],
+                "end": feat["location"]["end"]["value"]
+            })
+    return domain_features
+
+
+def detect_domain_loss(domains, original_protein, skipped_protein):
+    lost_domains = []
+    for domain in domains:
+        dom_start = domain["start"] - 1  # 0-based indexing
+        dom_end = domain["end"]
+
+        original_domain_seq = original_protein[dom_start:dom_end]
+        skipped_domain_seq = skipped_protein[dom_start:dom_end]
+
+        if not skipped_domain_seq:
+            lost_domains.append((domain, "missing"))
+        elif original_domain_seq != skipped_domain_seq:
+            lost_domains.append((domain, "altered"))
+    return lost_domains
+
+
