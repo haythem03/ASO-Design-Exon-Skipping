@@ -582,3 +582,7 @@ def design_aso_candidates(cds_sequence, exon_blocks, skip_exons, aso_length=20):
                     candidates.append({"type": "junction", "exon": exon_number, "sequence": junction_seq})
 
     return candidates
+
+# Example usage (design ASOs for patient deletion)
+aso_candidates = design_aso_candidates(full_cds_sequence, exon_blocks, deleted_exons, aso_length=20)
+print(f"\n🔬 Designed {len(aso_candidates)} ASO candidates.")
