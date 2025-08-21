@@ -586,3 +586,29 @@ def design_aso_candidates(cds_sequence, exon_blocks, skip_exons, aso_length=20):
 # Example usage (design ASOs for patient deletion)
 aso_candidates = design_aso_candidates(full_cds_sequence, exon_blocks, deleted_exons, aso_length=20)
 print(f"\n🔬 Designed {len(aso_candidates)} ASO candidates.")
+
+# ====================================
+# --- Save ASOs to CSV and FASTA ---
+# ====================================
+import csv
+import os
+
+def save_aso_to_csv_fasta(candidates, outdir="ASO_Output"):
+    os.makedirs(outdir, exist_ok=True)
+
+    csv_path = os.path.join(outdir, "aso_candidates.csv")
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=["type", "exon", "sequence"])
+        writer.writeheader()
+        for c in candidates:
+            writer.writerow(c)
+
+    fasta_path = os.path.join(outdir, "aso_candidates.fasta")
+    with open(fasta_path, "w") as f:
+        for idx, c in enumerate(candidates, 1):
+            f.write(f">aso_{c['type']}_exon{c['exon']}_{idx}\n{c['sequence']}\n")
+
+    print(f"✅ Saved ASOs to {csv_path} and {fasta_path}")
+
+
+save_aso_to_csv_fasta(aso_candidates)
