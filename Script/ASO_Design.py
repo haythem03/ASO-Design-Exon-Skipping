@@ -547,3 +547,38 @@ else:
 
         if not found_fix:
             print("❌ No single exon rescue found. Consider multi-exon skipping or alternative strategy.")
+
+# ====================================
+# --- ASO Candidate Design ---
+# ====================================
+import random
+
+def design_aso_candidates(cds_sequence, exon_blocks, skip_exons, aso_length=20):
+    """
+    Design simple ASO candidates targeting exonic or exon-exon junction sequences.
+    Returns a list of ASO sequences.
+    """
+    candidates = []
+    exon_blocks_sorted = sorted(exon_blocks, key=lambda x: x[1])
+
+    for exon_number, start, end in exon_blocks_sorted:
+        if exon_number in skip_exons:
+            exon_seq = cds_sequence[start:end+1]
+            # Pick random sliding windows from exon
+            for i in range(0, max(1, len(exon_seq) - aso_length + 1), aso_length // 2):
+                aso = exon_seq[i:i+aso_length]
+                if len(aso) == aso_length:
+                    candidates.append({"type": "exonic", "exon": exon_number, "sequence": aso})
+
+            # Add junction-targeting ASOs (end of exon + start of next exon)
+            next_exon = None
+            for e2, s2, t2 in exon_blocks_sorted:
+                if e2 > exon_number:
+                    next_exon = (s2, t2)
+                    break
+            if next_exon:
+                junction_seq = cds_sequence[end-aso_length//2+1:end+1] + cds_sequence[next_exon[0]:next_exon[0]+aso_length//2]
+                if len(junction_seq) == aso_length:
+                    candidates.append({"type": "junction", "exon": exon_number, "sequence": junction_seq})
+
+    return candidates
