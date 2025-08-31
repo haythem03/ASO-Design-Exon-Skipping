@@ -34,3 +34,18 @@ It performs:
 - ✅ Outputs comprehensive and structured results for downstream analysis
 
 ---
+
+
+---
+
+## 🛠️ Installation
+Clone this repository and install dependencies:  
+
+```bash
+# Clone repository
+git clone https://github.com/haythem03/ASO-Pipeline.git
+cd ASO-Pipeline
+
+# Install dependencies
+pip install -r Requirements/requirements.txt
+
